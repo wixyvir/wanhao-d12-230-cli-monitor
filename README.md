@@ -2,7 +2,11 @@
 
 A lightweight, terminal-based live dashboard for the **Wanhao D12 230** 3D printer over USB serial.
 
+> **Note:** This project has been mostly vibecoded with the help of AI assistants.
+
 If you just want to keep an eye on temperatures, print progress, and position without running a full OctoPrint server, this tool gives you a clean Rich-powered terminal UI that refreshes in real time.
+
+![Wanhao D12 230 Monitor screenshot](screenshot.png)
 
 ## Features
 
