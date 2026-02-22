@@ -6,7 +6,7 @@ from time import sleep, time
 
 import serial
 
-from .parsers import parse_m105, parse_m27, parse_m114, parse_m220
+from .parsers import parse_m27, parse_m105, parse_m114, parse_m220
 from .state import PrinterState
 
 logger = logging.getLogger(__name__)

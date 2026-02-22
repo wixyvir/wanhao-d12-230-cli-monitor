@@ -37,7 +37,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Polling interval in seconds (default: 2.5)",
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose logging to printer_monitor.log",
     )

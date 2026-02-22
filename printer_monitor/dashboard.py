@@ -3,7 +3,6 @@
 from time import time
 
 from rich.console import Group
-from rich.layout import Layout
 from rich.panel import Panel
 from rich.progress_bar import ProgressBar
 from rich.table import Table

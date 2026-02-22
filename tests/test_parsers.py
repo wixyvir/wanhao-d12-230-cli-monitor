@@ -1,11 +1,14 @@
 """Unit tests for G-code response parsers."""
 
-from printer_monitor.parsers import parse_m105, parse_m27, parse_m114, parse_m220
+from printer_monitor.parsers import parse_m27, parse_m105, parse_m114, parse_m220
 
 
 class TestParseM105:
     def test_full_response_with_ok(self):
-        line = "ok T:204.77 /205.00 B:50.71 /50.00 T0:204.77 /205.00 T1:23.50 /0.00 @:95 B@:0"
+        line = (
+            "ok T:204.77 /205.00 B:50.71 /50.00"
+            " T0:204.77 /205.00 T1:23.50 /0.00 @:95 B@:0"
+        )
         result = parse_m105(line)
 
         assert result["hotend0"].current == 204.77
@@ -20,7 +23,10 @@ class TestParseM105:
         assert result["bed"].power == 0
 
     def test_response_without_ok(self):
-        line = "T:200.00 /210.00 B:60.00 /60.00 T0:200.00 /210.00 T1:25.00 /0.00 @:127 B@:64"
+        line = (
+            "T:200.00 /210.00 B:60.00 /60.00"
+            " T0:200.00 /210.00 T1:25.00 /0.00 @:127 B@:64"
+        )
         result = parse_m105(line)
 
         assert result["hotend0"].current == 200.00
