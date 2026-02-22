@@ -1,0 +1,54 @@
+[project]
+name = "wanhao-d12-230-cli-monitor"
+version = "0.1.0"
+description = "Live terminal dashboard for Wanhao D12 230 3D printer over USB serial"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+authors = [{ name = "wixyvir" }]
+requires-python = ">=3.10"
+keywords = ["3d-printer", "wanhao", "marlin", "serial", "monitor", "dashboard"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Hardware",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "pyserial (>=3.5,<4.0)",
+    "rich (>=13.0,<14.0)",
+]
+
+[project.scripts]
+wanhao-d12-230-cli-monitor = "printer_monitor.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/wixyvir/wanhao-d12-230-cli-monitor"
+Repository = "https://github.com/wixyvir/wanhao-d12-230-cli-monitor"
+Issues = "https://github.com/wixyvir/wanhao-d12-230-cli-monitor/issues"
+
+[tool.poetry]
+packages = [{ include = "printer_monitor" }]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+ruff = "^0.9"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
