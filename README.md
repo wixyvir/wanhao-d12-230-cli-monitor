@@ -14,6 +14,8 @@ If you just want to keep an eye on temperatures, print progress, and position wi
 - **SD card print progress** with a progress bar
 - **Position tracking** (X/Y/Z/E) and feedrate percentage
 - **Color-coded status** — green when at target, yellow when heating, dim when off
+- **REST API** with OpenAPI docs via `serve` subcommand
+- **Auto-reconnect** — server stays up if the printer disconnects
 - **Verbose logging** mode for debugging serial communication
 - **Graceful shutdown** on Ctrl+C or SIGTERM
 
@@ -66,6 +68,37 @@ poetry run wanhao-d12-230-cli-monitor --baud 250000 --interval 5.0
 poetry run wanhao-d12-230-cli-monitor -v
 ```
 
+## REST API Server
+
+:factory: The `serve` subcommand starts a REST API with OpenAPI documentation:
+
+```bash
+# Start the API server on default port 8000
+poetry run wanhao-d12-230-cli-monitor serve
+
+# Custom host, HTTP port, and serial port
+poetry run wanhao-d12-230-cli-monitor serve --host 127.0.0.1 --http-port 9000 /dev/ttyUSB1
+
+# OpenAPI docs available at http://localhost:8000/docs
+```
+
+The server stays up even if the printer is disconnected and automatically retries the connection. The `/status` endpoint returns the full printer state as JSON:
+
+```bash
+curl http://localhost:8000/status
+```
+
+### Serve Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `port` | `/dev/ttyUSB0` | Serial port to connect to |
+| `--host` | `0.0.0.0` | Bind address |
+| `--http-port` | `8000` | HTTP port |
+| `--baud` | `115200` | Baud rate for serial communication |
+| `--interval` | `2.5` | Polling interval in seconds |
+| `-v`, `--verbose` | off | Log all serial TX/RX to `printer_monitor.log` |
+
 ## CLI Options
 
 | Option | Default | Description |
@@ -84,6 +117,7 @@ printer_monitor/
 ├── serial_conn.py   # SerialConnection + PrinterPoller daemon thread
 ├── dashboard.py     # build_dashboard() → Rich Panel from PrinterState
 ├── cli.py           # Argparse entry point, signal handling, threading
+├── server.py        # FastAPI REST API server (serve subcommand)
 └── __main__.py      # python -m printer_monitor support
 ```
 
