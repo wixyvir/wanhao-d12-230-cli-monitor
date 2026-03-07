@@ -26,7 +26,8 @@ poetry build                                # Build wheel + sdist
 - `printer_monitor/parsers.py` — Pure functions parsing M105/M27/M114/M220 G-code responses
 - `printer_monitor/serial_conn.py` — `SerialConnection` (send/receive) + `PrinterPoller` (daemon thread)
 - `printer_monitor/dashboard.py` — `build_dashboard()` returns a Rich Panel from `PrinterState`
-- `printer_monitor/cli.py` — Argparse entry point, wires poller thread + Rich Live loop
+- `printer_monitor/cli.py` — Argparse entry point with `serve` subcommand, wires poller thread + Rich Live loop
+- `printer_monitor/server.py` — FastAPI REST API (`create_app` factory, `/status` endpoint, Pydantic response models)
 - `tests/test_parsers.py` — Unit tests for all parsers (no printer needed)
 
 ## Key Conventions
