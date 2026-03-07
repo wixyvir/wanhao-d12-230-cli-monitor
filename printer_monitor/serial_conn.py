@@ -102,6 +102,25 @@ class PrinterPoller(threading.Thread):
     def stop(self) -> None:
         self._stop_event.set()
 
+    def _reconnect(self) -> bool:
+        """Try to reconnect, sleeping between attempts. Returns False if stopped."""
+        while not self._stop_event.is_set():
+            for _ in range(int(self.interval / 0.1)):
+                if self._stop_event.is_set():
+                    return False
+                sleep(0.1)
+            try:
+                self.conn.open()
+                self.state.connected = True
+                self.state.last_error = ""
+                self.state.last_update = time()
+                logger.info("Reconnected to %s", self.conn.port)
+                return True
+            except (serial.SerialException, OSError) as exc:
+                self.state.last_error = str(exc)
+                logger.debug("Reconnect attempt failed: %s", exc)
+        return False
+
     def run(self) -> None:
         try:
             self.conn.open()
@@ -111,7 +130,8 @@ class PrinterPoller(threading.Thread):
         except (serial.SerialException, OSError) as exc:
             self.state.last_error = str(exc)
             logger.error("Failed to open serial port: %s", exc)
-            return
+            if not self._reconnect():
+                return
 
         while not self._stop_event.is_set():
             try:
@@ -123,7 +143,9 @@ class PrinterPoller(threading.Thread):
                 self.state.connected = False
                 self.state.last_error = str(exc)
                 logger.error("Poll error: %s", exc)
-                break
+                self.conn.close()
+                if not self._reconnect():
+                    break
 
             # Sleep in small increments so Ctrl+C is responsive
             for _ in range(int(self.interval / 0.1)):
