@@ -10,7 +10,7 @@ Terminal dashboard for Wanhao D12 230 3D printer, using pyserial + Rich.
 
 ```bash
 poetry install                              # Install dependencies
-poetry run pytest -v                        # Run parser unit tests
+poetry run pytest -v                        # Run unit tests (no printer needed)
 poetry run wanhao-d12-230-cli-monitor       # Launch the dashboard (requires printer)
 poetry run wanhao-d12-230-cli-monitor --help  # Show CLI options
 poetry run ruff check .                     # Lint
@@ -29,6 +29,8 @@ poetry build                                # Build wheel + sdist
 - `printer_monitor/cli.py` — Argparse entry point with `serve` subcommand, wires poller thread + Rich Live loop
 - `printer_monitor/server.py` — FastAPI REST API (`create_app` factory, `/status` endpoint, Pydantic response models)
 - `tests/test_parsers.py` — Unit tests for all parsers (no printer needed)
+- `tests/test_serial_conn.py` — Port resolution + poller robustness tests (fake connection, `tmp_path` device files)
+- `tests/test_cli.py` — Argparse tests for dashboard and `serve` options
 
 ## Key Conventions
 
@@ -36,6 +38,10 @@ poetry build                                # Build wheel + sdist
 - The poller thread is a daemon and uses `threading.Event` for clean shutdown
 - Temperature power is raw PWM 0-127 from Marlin, converted to percentage in the dashboard
 - `echo:busy: processing` lines extend command timeout rather than being treated as errors
+- The poller must never die: its loops catch `Exception` (e.g. `termios.error` from a vanished USB device is *not* an `OSError`), `SerialConnection.close()` never raises, and `run()` always leaves `state.connected = False` on exit
+- Port resolution on (re)open (`resolve_port`): remembered `/dev/serial/by-id` link → configured `--port` → the only `/dev/ttyUSB*` (never guesses among several)
+- A poll cycle with no `ok` at all marks the state disconnected (`"No response from printer"`) but does **not** reopen the port: reopening toggles DTR, which can reset the board mid-print
+- The serial port is the `--port` option (no positional). Shared options are added to both parsers; the `serve` copy uses `argparse.SUPPRESS` defaults so options given before the subcommand are not overwritten
 
 ## CI
 
