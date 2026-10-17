@@ -40,8 +40,19 @@ poetry build                                # Build wheel + sdist
 - `echo:busy: processing` lines extend command timeout rather than being treated as errors
 - The poller must never die: its loops catch `Exception` (e.g. `termios.error` from a vanished USB device is *not* an `OSError`), `SerialConnection.close()` never raises, and `run()` always leaves `state.connected = False` on exit
 - Port resolution on (re)open (`resolve_port`): remembered `/dev/serial/by-id` link → configured `--port` → the only `/dev/ttyUSB*` (never guesses among several)
-- A poll cycle with no `ok` at all marks the state disconnected (`"No response from printer"`) but does **not** reopen the port: reopening toggles DTR, which can reset the board mid-print
+- A poll cycle with no `ok` at all marks the state disconnected (`"No response from printer"`) but does **not** reopen the port: reopening toggles DTR, which resets many Marlin boards mid-print. (The D12 230 board itself was observed *not* to reset: restarting the monitor mid-SD-print on 2026-10-17 left the print running. Keep the rule anyway for other boards.)
 - The serial port is the `--port` option (no positional). Shared options are added to both parsers; the `serve` copy uses `argparse.SUPPRESS` defaults so options given before the subcommand are not overwritten
+
+## Deployment (Raspberry Pi)
+
+- Host: `ssh cyprien@pi` (not `root`). **ARM (aarch64)**, Python 3.13: never copy a virtualenv or wheels built on x86_64; if dependencies change, run `poetry install` on the pi itself.
+- Code lives in `/home/cyprien/monitor` (plain copy, not a git checkout), installed in editable mode into the poetry venv (`~/.cache/pypoetry/virtualenvs/wanhao-d12-230-cli-monitor-*-py3.13`). When only `.py`/`.md` files change, deploy with `scp` then restart; no reinstall is needed.
+- Before overwriting, back up the folder (`cp -a monitor monitor.bak-YYYYMMDD`) and diff the deployed files against the expected branch.
+- Runs in the screen session `printer-monitor` (interactive shell, reattach with `screen -r printer-monitor`):
+  `poetry run wanhao-d12-230-cli-monitor serve --http-port 8111 --port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0`
+- Always use the `/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0` path: the CH340 adapter re-enumerates (`ttyUSB0` → `ttyUSB1`) after a USB drop.
+- Health check: `curl -s localhost:8111/status` on the pi. `last_update` must keep advancing; a stale `last_update` with `connected: true` is the pre-fix failure mode (dead poller thread).
+- The screen scrollback (~1000 lines) is quickly filled by uvicorn access logs from `/status` polling, so tracebacks get lost. Check the kernel log (`journalctl -k | grep -i ttyUSB`) for USB disconnects.
 
 ## CI
 
