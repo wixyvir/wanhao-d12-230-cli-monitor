@@ -108,6 +108,39 @@ curl http://localhost:8000/status
 | `--interval` | `2.5` | Polling interval in seconds |
 | `-v`, `--verbose` | off | Log all serial TX/RX to `printer_monitor.log` |
 
+### Running as a systemd Service
+
+:factory: To keep the server running across reboots and USB drops, run it as a systemd system unit. Point `ExecStart` at the virtualenv's executable (from `poetry env info -p`) rather than `poetry run`, and use the stable `/dev/serial/by-id/...` path. Example `/etc/systemd/system/printer-monitor.service`:
+
+```ini
+[Unit]
+Description=Wanhao D12 230 printer monitor (HTTP :8111)
+After=network-online.target dev-serial-by\x2did-usb\x2d1a86_USB_Serial\x2dif00\x2dport0.device
+Wants=network-online.target
+BindsTo=dev-serial-by\x2did-usb\x2d1a86_USB_Serial\x2dif00\x2dport0.device
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=youruser
+WorkingDirectory=/home/youruser/monitor
+ExecStart=/path/to/venv/bin/wanhao-d12-230-cli-monitor serve --http-port 8111 --port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target dev-serial-by\x2did-usb\x2d1a86_USB_Serial\x2dif00\x2dport0.device
+```
+
+The device unit name comes from `systemd-escape --path --suffix=device /dev/serial/by-id/<your-adapter>`. With `BindsTo=` and `WantedBy=` on the device, the service stops when the adapter is unplugged and starts again when it is plugged back in. The user must be in the `dialout` group to open the port.
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now printer-monitor.service
+journalctl -u printer-monitor -f   # follow logs
+```
+
 ## CLI Options
 
 | Option | Default | Description |

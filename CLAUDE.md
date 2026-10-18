@@ -48,11 +48,11 @@ poetry build                                # Build wheel + sdist
 - Host: `ssh cyprien@pi` (not `root`). **ARM (aarch64)**, Python 3.13: never copy a virtualenv or wheels built on x86_64; if dependencies change, run `poetry install` on the pi itself.
 - Code lives in `/home/cyprien/monitor` (plain copy, not a git checkout), installed in editable mode into the poetry venv (`~/.cache/pypoetry/virtualenvs/wanhao-d12-230-cli-monitor-*-py3.13`). When only `.py`/`.md` files change, deploy with `scp` then restart; no reinstall is needed.
 - Before overwriting, back up the folder (`cp -a monitor monitor.bak-YYYYMMDD`) and diff the deployed files against the expected branch.
-- Runs in the screen session `printer-monitor` (interactive shell, reattach with `screen -r printer-monitor`):
-  `poetry run wanhao-d12-230-cli-monitor serve --http-port 8111 --port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0`
+- Runs as the systemd system unit `printer-monitor.service` (`/etc/systemd/system/printer-monitor.service`, kept on the pi only; template in README "Running as a systemd Service"). `User=cyprien`, `ExecStart` is the venv's `bin/wanhao-d12-230-cli-monitor serve --http-port 8111 --port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0`, `Restart=on-failure`, and `BindsTo=`/`WantedBy=` the by-id `.device` unit so it follows adapter unplug/replug. It replaced the former `screen` session in October 2026.
+- Restart after deploying: `sudo systemctl restart printer-monitor` (sudo needs a password on the pi). Prefer restarting while the printer is idle (see the DTR note above).
 - Always use the `/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0` path: the CH340 adapter re-enumerates (`ttyUSB0` → `ttyUSB1`) after a USB drop.
 - Health check: `curl -s localhost:8111/status` on the pi. `last_update` must keep advancing; a stale `last_update` with `connected: true` is the pre-fix failure mode (dead poller thread).
-- The screen scrollback (~1000 lines) is quickly filled by uvicorn access logs from `/status` polling, so tracebacks get lost. Check the kernel log (`journalctl -k | grep -i ttyUSB`) for USB disconnects.
+- Logs: `journalctl -u printer-monitor -f` (uvicorn access logs included). journald is volatile on the pi (RAM only, lost on reboot). Check the kernel log (`journalctl -k | grep -i ttyUSB`) for USB disconnects.
 
 ## CI
 
