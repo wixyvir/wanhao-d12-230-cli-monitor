@@ -13,29 +13,40 @@ from .serial_conn import PrinterPoller, SerialConnection
 from .state import PrinterState
 
 
-def _add_common_args(parser: argparse.ArgumentParser) -> None:
+def _add_common_args(
+    parser: argparse.ArgumentParser, suppress_defaults: bool = False
+) -> None:
+    """Add options shared by the dashboard and `serve`.
+
+    On the subcommand, defaults are suppressed so that options given before
+    the subcommand name (e.g. `--port X serve`) are not overwritten.
+    """
+
+    def default(value: object) -> object:
+        return argparse.SUPPRESS if suppress_defaults else value
+
     parser.add_argument(
-        "port",
-        nargs="?",
-        default="/dev/ttyUSB0",
+        "--port",
+        default=default("/dev/ttyUSB0"),
         help="Serial port (default: /dev/ttyUSB0)",
     )
     parser.add_argument(
         "--baud",
         type=int,
-        default=115200,
+        default=default(115200),
         help="Baud rate (default: 115200)",
     )
     parser.add_argument(
         "--interval",
         type=float,
-        default=2.5,
+        default=default(2.5),
         help="Polling interval in seconds (default: 2.5)",
     )
     parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
+        default=default(False),
         help="Enable verbose logging to printer_monitor.log",
     )
 
@@ -60,7 +71,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=8000,
         help="HTTP port (default: 8000)",
     )
-    _add_common_args(serve_parser)
+    _add_common_args(serve_parser, suppress_defaults=True)
 
     # Default (no subcommand) = dashboard
     _add_common_args(parser)

@@ -15,7 +15,7 @@ If you just want to keep an eye on temperatures, print progress, and position wi
 - **Position tracking** (X/Y/Z/E) and feedrate percentage
 - **Color-coded status** — green when at target, yellow when heating, dim when off
 - **REST API** with OpenAPI docs via `serve` subcommand
-- **Auto-reconnect** — server stays up if the printer disconnects
+- **Auto-reconnect** — survives any serial error, and finds the printer again if it comes back under a new `/dev/ttyUSB*` name
 - **Verbose logging** mode for debugging serial communication
 - **Graceful shutdown** on Ctrl+C or SIGTERM
 
@@ -43,7 +43,14 @@ ls /dev/ttyUSB*
 
 # Check kernel messages for recently connected devices
 dmesg | grep tty
+
+# Stable names that survive unplug/replug
+ls -l /dev/serial/by-id/
 ```
+
+:factory: `/dev/ttyUSB*` numbers can change when the USB link drops and comes back (e.g. `ttyUSB0` becomes `ttyUSB1`). The most stable choice is the `/dev/serial/by-id/` link, e.g. `--port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0`.
+
+When the configured port disappears, the monitor reconnects to the device by its remembered `/dev/serial/by-id/` link, or, failing that, to the only `/dev/ttyUSB*` device present. It never guesses when several are plugged in.
 
 If you get a **permission denied** error, add your user to the `dialout` group:
 
@@ -59,7 +66,7 @@ sudo usermod -aG dialout $USER
 poetry run wanhao-d12-230-cli-monitor
 
 # Specify a different serial port
-poetry run wanhao-d12-230-cli-monitor /dev/ttyUSB1
+poetry run wanhao-d12-230-cli-monitor --port /dev/ttyUSB1
 
 # Custom baud rate and polling interval
 poetry run wanhao-d12-230-cli-monitor --baud 250000 --interval 5.0
@@ -77,7 +84,7 @@ poetry run wanhao-d12-230-cli-monitor -v
 poetry run wanhao-d12-230-cli-monitor serve
 
 # Custom host, HTTP port, and serial port
-poetry run wanhao-d12-230-cli-monitor serve --host 127.0.0.1 --http-port 9000 /dev/ttyUSB1
+poetry run wanhao-d12-230-cli-monitor serve --host 127.0.0.1 --http-port 9000 --port /dev/ttyUSB1
 
 # OpenAPI docs available at http://localhost:8000/docs
 ```
@@ -88,11 +95,13 @@ The server stays up even if the printer is disconnected and automatically retrie
 curl http://localhost:8000/status
 ```
 
+:factory: `connected` is `false` while the port is unavailable (`last_error` holds the serial error) and also when the port is open but the firmware answers nothing for a full poll cycle (`last_error` is `"No response from printer"`). In the second case the port is not reopened, because reopening toggles DTR, which can reset the board mid-print. `last_update` is the time of the last successful poll, so its age tells you how stale the data is.
+
 ### Serve Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `port` | `/dev/ttyUSB0` | Serial port to connect to |
+| `--port` | `/dev/ttyUSB0` | Serial port to connect to |
 | `--host` | `0.0.0.0` | Bind address |
 | `--http-port` | `8000` | HTTP port |
 | `--baud` | `115200` | Baud rate for serial communication |
@@ -103,7 +112,7 @@ curl http://localhost:8000/status
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `port` | `/dev/ttyUSB0` | Serial port to connect to |
+| `--port` | `/dev/ttyUSB0` | Serial port to connect to |
 | `--baud` | `115200` | Baud rate for serial communication |
 | `--interval` | `2.5` | Polling interval in seconds |
 | `-v`, `--verbose` | off | Log all serial TX/RX to `printer_monitor.log` |
