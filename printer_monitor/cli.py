@@ -13,11 +13,7 @@ from .serial_conn import PrinterPoller, SerialConnection
 from .state import PrinterState
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        prog="wanhao-d12-230-cli-monitor",
-        description="Live terminal dashboard for Wanhao D12 230",
-    )
+def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "port",
         nargs="?",
@@ -42,24 +38,41 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Enable verbose logging to printer_monitor.log",
     )
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="wanhao-d12-230-cli-monitor",
+        description="Live terminal dashboard for Wanhao D12 230",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # serve subcommand
+    serve_parser = subparsers.add_parser("serve", help="Start the REST API server")
+    serve_parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Bind address (default: 0.0.0.0)",
+    )
+    serve_parser.add_argument(
+        "--http-port",
+        type=int,
+        default=8000,
+        help="HTTP port (default: 8000)",
+    )
+    _add_common_args(serve_parser)
+
+    # Default (no subcommand) = dashboard
+    _add_common_args(parser)
+
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> None:
-    args = parse_args(argv)
-
-    if args.verbose:
-        logging.basicConfig(
-            filename="printer_monitor.log",
-            level=logging.DEBUG,
-            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        )
-
+def _run_dashboard(args: argparse.Namespace) -> None:
     state = PrinterState()
     conn = SerialConnection(port=args.port, baudrate=args.baud)
     poller = PrinterPoller(conn=conn, state=state, interval=args.interval)
 
-    # Graceful shutdown on Ctrl+C
     def handle_signal(signum: int, frame: object) -> None:
         poller.stop()
 
@@ -82,3 +95,28 @@ def main(argv: list[str] | None = None) -> None:
     if state.last_error:
         print(f"\nExited due to error: {state.last_error}", file=sys.stderr)
         sys.exit(1)
+
+
+def _run_serve(args: argparse.Namespace) -> None:
+    import uvicorn
+
+    from .server import create_app
+
+    app = create_app(port=args.port, baudrate=args.baud, interval=args.interval)
+    uvicorn.run(app, host=args.host, port=args.http_port)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+
+    if args.verbose:
+        logging.basicConfig(
+            filename="printer_monitor.log",
+            level=logging.DEBUG,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        )
+
+    if args.command == "serve":
+        _run_serve(args)
+    else:
+        _run_dashboard(args)
