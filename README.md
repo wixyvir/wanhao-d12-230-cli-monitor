@@ -108,6 +108,38 @@ curl http://localhost:8000/status
 | `--interval` | `2.5` | Polling interval in seconds |
 | `-v`, `--verbose` | off | Log all serial TX/RX to `printer_monitor.log` |
 
+### Running as a systemd Service
+
+:factory: To keep the server running across reboots and USB drops, run it as a systemd system unit. Point `ExecStart` at the virtualenv's executable (from `poetry env info -p`) rather than `poetry run`, and use the stable `/dev/serial/by-id/...` path. Example `/etc/systemd/system/printer-monitor.service`:
+
+```ini
+[Unit]
+Description=Wanhao D12 230 printer monitor (HTTP :8111)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=youruser
+WorkingDirectory=/home/youruser/monitor
+ExecStart=/path/to/venv/bin/wanhao-d12-230-cli-monitor serve --http-port 8111 --port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Do **not** bind the service to the adapter's `.device` unit (`BindsTo=`/`WantedBy=dev-serial-by\x2did-….device`): the server already survives unplugs and reconnects through the by-id link on its own. When the printer is powered on, the CH340 adapter drops and comes back within ~250 ms; with a device binding, systemd stopped the service on the drop and never started it again. `Restart=always` covers real crashes. The user must be in the `dialout` group to open the port.
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now printer-monitor.service
+journalctl -u printer-monitor -f   # follow logs
+```
+
 ## CLI Options
 
 | Option | Default | Description |
