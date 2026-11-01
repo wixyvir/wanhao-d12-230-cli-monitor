@@ -115,9 +115,8 @@ curl http://localhost:8000/status
 ```ini
 [Unit]
 Description=Wanhao D12 230 printer monitor (HTTP :8111)
-After=network-online.target dev-serial-by\x2did-usb\x2d1a86_USB_Serial\x2dif00\x2dport0.device
+After=network-online.target
 Wants=network-online.target
-BindsTo=dev-serial-by\x2did-usb\x2d1a86_USB_Serial\x2dif00\x2dport0.device
 StartLimitIntervalSec=300
 StartLimitBurst=10
 
@@ -126,14 +125,14 @@ Type=simple
 User=youruser
 WorkingDirectory=/home/youruser/monitor
 ExecStart=/path/to/venv/bin/wanhao-d12-230-cli-monitor serve --http-port 8111 --port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
-Restart=on-failure
+Restart=always
 RestartSec=10
 
 [Install]
-WantedBy=multi-user.target dev-serial-by\x2did-usb\x2d1a86_USB_Serial\x2dif00\x2dport0.device
+WantedBy=multi-user.target
 ```
 
-The device unit name comes from `systemd-escape --path --suffix=device /dev/serial/by-id/<your-adapter>`. With `BindsTo=` and `WantedBy=` on the device, the service stops when the adapter is unplugged and starts again when it is plugged back in. The user must be in the `dialout` group to open the port.
+Do **not** bind the service to the adapter's `.device` unit (`BindsTo=`/`WantedBy=dev-serial-by\x2did-….device`): the server already survives unplugs and reconnects through the by-id link on its own. When the printer is powered on, the CH340 adapter drops and comes back within ~250 ms; with a device binding, systemd stopped the service on the drop and never started it again. `Restart=always` covers real crashes. The user must be in the `dialout` group to open the port.
 
 ```bash
 sudo systemctl daemon-reload
