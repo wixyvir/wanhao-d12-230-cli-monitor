@@ -1,0 +1,2 @@
+How would you easily make an homeassistant plugin for people who deployed this tool ? using its REST API.
+Search online how to, and open a MR with a plan in it
