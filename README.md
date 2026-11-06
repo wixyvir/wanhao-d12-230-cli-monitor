@@ -140,6 +140,10 @@ sudo systemctl enable --now printer-monitor.service
 journalctl -u printer-monitor -f   # follow logs
 ```
 
+### Home Assistant
+
+:factory: A plan to expose the printer in Home Assistant through this REST API (ready-to-copy `rest:` package first, then a HACS custom integration) is in [docs/home-assistant-plan.md](docs/home-assistant-plan.md). Nothing is implemented yet.
+
 ## CLI Options
 
 | Option | Default | Description |
