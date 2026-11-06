@@ -28,6 +28,7 @@ poetry build                                # Build wheel + sdist
 - `printer_monitor/dashboard.py` — `build_dashboard()` returns a Rich Panel from `PrinterState`
 - `printer_monitor/cli.py` — Argparse entry point with `serve` subcommand, wires poller thread + Rich Live loop
 - `printer_monitor/server.py` — FastAPI REST API (`create_app` factory, `/status` endpoint, Pydantic response models)
+- `docs/home-assistant-plan.md` — Plan (not implemented) for a Home Assistant integration on top of `/status`: YAML `rest:` package, server additions, then a HACS custom integration in a separate repo
 - `tests/test_parsers.py` — Unit tests for all parsers (no printer needed)
 - `tests/test_serial_conn.py` — Port resolution + poller robustness tests (fake connection, `tmp_path` device files)
 - `tests/test_cli.py` — Argparse tests for dashboard and `serve` options
